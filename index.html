@@ -221,17 +221,27 @@
             for (const feature of geojson.features) {
                 if (feature.geometry.type === 'Polygon') {
                     if (pointInPolygon([lon, lat], feature.geometry.coordinates)) {
-                        return feature.properties.name || feature.properties.Name || 'Unknown';
+                        return extractLocationName(feature.properties);
                     }
                 } else if (feature.geometry.type === 'MultiPolygon') {
                     for (const polygon of feature.geometry.coordinates) {
                         if (pointInPolygon([lon, lat], polygon)) {
-                            return feature.properties.name || feature.properties.Name || 'Unknown';
+                            return extractLocationName(feature.properties);
                         }
                     }
                 }
             }
             return null;
+        }
+
+        function extractLocationName(properties) {
+            // Try different property names that might contain the location name
+            return properties.name ||
+                   properties.Name ||
+                   properties.first_city ||
+                   properties.county ||
+                   properties.COUNTY ||
+                   'Unknown';
         }
 
         // Ray casting algorithm for point-in-polygon check
