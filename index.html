@@ -285,6 +285,17 @@
                         console.log('First coordinate sample:', firstRing[0]);
                     }
                 }
+
+                // Look for Westminster specifically
+                const westminster = geojson.features.find(f =>
+                    extractLocationName(f.properties).toLowerCase().includes('westminster')
+                );
+                if (westminster) {
+                    console.log('Found Westminster in features!');
+                    console.log('Westminster geometry type:', westminster.geometry.type);
+                } else {
+                    console.log('Westminster NOT found in this dataset');
+                }
             }
 
             for (const feature of geojson.features) {
