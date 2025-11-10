@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KML Test</title>
+</head>
+<body>
+    <h1>KML Parsing Test</h1>
+    <div id="output"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
+    <script>
+        async function test() {
+            const output = document.getElementById('output');
+
+            try {
+                // Load Counties KML
+                output.innerHTML += '<p>Loading Counties.kml...</p>';
+                const countiesResponse = await fetch('Counties.kml');
+                const countiesText = await countiesResponse.text();
+                const countiesParser = new DOMParser();
+                const countiesKML = countiesParser.parseFromString(countiesText, 'text/xml');
+                const countiesData = toGeoJSON.kml(countiesKML);
+
+                output.innerHTML += `<p>Counties features: ${countiesData.features ? countiesData.features.length : 'NO FEATURES'}</p>`;
+
+                if (countiesData.features && countiesData.features.length > 0) {
+                    output.innerHTML += '<h3>First county:</h3>';
+                    const first = countiesData.features[0];
+                    output.innerHTML += `<pre>${JSON.stringify({
+                        type: first.geometry.type,
+                        properties: first.properties
+                    }, null, 2)}</pre>`;
+                }
+
+                // Load Towns KML
+                output.innerHTML += '<p>Loading Towns.kml...</p>';
+                const townsResponse = await fetch('Towns.kml');
+                const townsText = await townsResponse.text();
+                const townsParser = new DOMParser();
+                const townsKML = townsParser.parseFromString(townsText, 'text/xml');
+                const townsData = toGeoJSON.kml(townsKML);
+
+                output.innerHTML += `<p>Towns features: ${townsData.features ? townsData.features.length : 'NO FEATURES'}</p>`;
+
+                if (townsData.features && townsData.features.length > 0) {
+                    output.innerHTML += '<h3>First town:</h3>';
+                    const first = townsData.features[0];
+                    output.innerHTML += `<pre>${JSON.stringify({
+                        type: first.geometry.type,
+                        properties: first.properties
+                    }, null, 2)}</pre>`;
+                }
+
+            } catch (error) {
+                output.innerHTML += `<p style="color: red;">Error: ${error.message}</p>`;
+                console.error(error);
+            }
+        }
+
+        test();
+    </script>
+</body>
+</html>
