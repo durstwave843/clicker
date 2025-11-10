@@ -136,6 +136,8 @@
                 countiesData = toGeoJSON.kml(countiesKML);
 
                 console.log('KML files loaded successfully');
+                console.log('Towns features:', townsData.features ? townsData.features.length : 0);
+                console.log('Counties features:', countiesData.features ? countiesData.features.length : 0);
             } catch (error) {
                 console.error('Error loading KML files:', error);
                 showResult('Error loading map data. Please refresh the page.', 'error');
@@ -263,21 +265,31 @@
         }
 
         function checkPointInPolygons(lon, lat, geojson) {
-            if (!geojson || !geojson.features) return null;
+            if (!geojson || !geojson.features) {
+                console.error('No geojson data or features available');
+                return null;
+            }
+
+            console.log(`Checking point [${lon}, ${lat}] against ${geojson.features.length} features`);
 
             for (const feature of geojson.features) {
                 if (feature.geometry.type === 'Polygon') {
                     if (pointInPolygon([lon, lat], feature.geometry.coordinates)) {
-                        return extractLocationName(feature.properties);
+                        const name = extractLocationName(feature.properties);
+                        console.log(`Found match in Polygon: ${name}`);
+                        return name;
                     }
                 } else if (feature.geometry.type === 'MultiPolygon') {
                     for (const polygon of feature.geometry.coordinates) {
                         if (pointInPolygon([lon, lat], polygon)) {
-                            return extractLocationName(feature.properties);
+                            const name = extractLocationName(feature.properties);
+                            console.log(`Found match in MultiPolygon: ${name}`);
+                            return name;
                         }
                     }
                 }
             }
+            console.log('No match found in any polygons');
             return null;
         }
 
