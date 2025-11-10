@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colorado Address Lookup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .input-group {
+            margin: 20px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .result.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .result.info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .loading {
+            text-align: center;
+            display: none;
+            margin-top: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Colorado Address Lookup</h1>
+        <div class="input-group">
+            <label for="address">Enter a Colorado Address:</label>
+            <input type="text" id="address" placeholder="e.g., 1600 Broadway, Denver, CO">
+            <button id="searchBtn" onclick="searchAddress()">Search</button>
+        </div>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Searching...</p>
+        </div>
+        <div class="result" id="result"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
+    <script>
+        let townsData = null;
+        let countiesData = null;
+
+        // Load KML files on page load
+        async function loadKMLFiles() {
+            try {
+                // Load Towns KML
+                const townsResponse = await fetch('Towns.kml');
+                const townsText = await townsResponse.text();
+                const townsParser = new DOMParser();
+                const townsKML = townsParser.parseFromString(townsText, 'text/xml');
+                townsData = toGeoJSON.kml(townsKML);
+
+                // Load Counties KML
+                const countiesResponse = await fetch('Counties.kml');
+                const countiesText = await countiesResponse.text();
+                const countiesParser = new DOMParser();
+                const countiesKML = countiesParser.parseFromString(countiesText, 'text/xml');
+                countiesData = toGeoJSON.kml(countiesKML);
+
+                console.log('KML files loaded successfully');
+            } catch (error) {
+                console.error('Error loading KML files:', error);
+                showResult('Error loading map data. Please refresh the page.', 'error');
+            }
+        }
+
+        // Call on page load
+        loadKMLFiles();
+
+        async function searchAddress() {
+            const address = document.getElementById('address').value.trim();
+
+            if (!address) {
+                showResult('Please enter an address.', 'error');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('searchBtn').disabled = true;
+
+            try {
+                // Geocode the address (using Nominatim - free OpenStreetMap geocoding service)
+                const geocodeUrl = `https://nominatim.openstreetmap.org/search?` +
+                    `q=${encodeURIComponent(address + ', Colorado')}&` +
+                    `format=json&` +
+                    `limit=1&` +
+                    `countrycodes=us`;
+
+                const geocodeResponse = await fetch(geocodeUrl, {
+                    headers: {
+                        'User-Agent': 'ColoradoAddressLookup/1.0'
+                    }
+                });
+                const geocodeData = await geocodeResponse.json();
+
+                if (!geocodeData || geocodeData.length === 0) {
+                    showResult('Address not found. Please try a different address.', 'error');
+                    return;
+                }
+
+                const lat = parseFloat(geocodeData[0].lat);
+                const lon = parseFloat(geocodeData[0].lon);
+
+                console.log(`Geocoded to: ${lat}, ${lon}`);
+
+                // Check if point is in Towns
+                let locationName = checkPointInPolygons(lon, lat, townsData);
+                let locationType = 'Town';
+
+                // If not in Towns, check Counties
+                if (!locationName) {
+                    locationName = checkPointInPolygons(lon, lat, countiesData);
+                    locationType = 'County';
+                }
+
+                if (locationName) {
+                    showResult(
+                        `<strong>Location:</strong> ${locationName} (${locationType})<br>` +
+                        `<strong>Coordinates:</strong> ${lat.toFixed(6)}, ${lon.toFixed(6)}`,
+                        'success'
+                    );
+                } else {
+                    showResult(
+                        `Address geocoded to ${lat.toFixed(6)}, ${lon.toFixed(6)}, but it doesn't fall within any known Colorado towns or counties.`,
+                        'info'
+                    );
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                showResult('An error occurred while processing your request. Please try again.', 'error');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('searchBtn').disabled = false;
+            }
+        }
+
+        function checkPointInPolygons(lon, lat, geojson) {
+            if (!geojson || !geojson.features) return null;
+
+            for (const feature of geojson.features) {
+                if (feature.geometry.type === 'Polygon') {
+                    if (pointInPolygon([lon, lat], feature.geometry.coordinates)) {
+                        return feature.properties.name || feature.properties.Name || 'Unknown';
+                    }
+                } else if (feature.geometry.type === 'MultiPolygon') {
+                    for (const polygon of feature.geometry.coordinates) {
+                        if (pointInPolygon([lon, lat], polygon)) {
+                            return feature.properties.name || feature.properties.Name || 'Unknown';
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Ray casting algorithm for point-in-polygon check
+        function pointInPolygon(point, polygonCoords) {
+            const [x, y] = point;
+            const rings = polygonCoords;
+
+            // Check the outer ring (first ring)
+            const outerRing = rings[0];
+            let inside = false;
+
+            for (let i = 0, j = outerRing.length - 1; i < outerRing.length; j = i++) {
+                const [xi, yi] = outerRing[i];
+                const [xj, yj] = outerRing[j];
+
+                const intersect = ((yi > y) !== (yj > y)) &&
+                    (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+
+            // If there are holes (inner rings), check if point is in any hole
+            if (inside && rings.length > 1) {
+                for (let h = 1; h < rings.length; h++) {
+                    const hole = rings[h];
+                    let inHole = false;
+
+                    for (let i = 0, j = hole.length - 1; i < hole.length; j = i++) {
+                        const [xi, yi] = hole[i];
+                        const [xj, yj] = hole[j];
+
+                        const intersect = ((yi > y) !== (yj > y)) &&
+                            (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                        if (intersect) inHole = !inHole;
+                    }
+
+                    if (inHole) {
+                        inside = false;
+                        break;
+                    }
+                }
+            }
+
+            return inside;
+        }
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+        }
+
+        // Allow Enter key to trigger search
+        document.getElementById('address').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                searchAddress();
+            }
+        });
+    </script>
+</body>
+</html>
