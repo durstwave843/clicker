@@ -149,11 +149,28 @@
 
         async function geocodeWithFallback(address) {
             // Try multiple query variations to improve geocoding success
-            const queries = [
-                address + ', Colorado',  // Original with Colorado
-                address,                  // As provided
-                extractStreetAddress(address) + ', Colorado'  // Just street part
-            ];
+            const queries = [];
+            const hasColorado = /\b(colorado|co)\b/i.test(address);
+
+            // Strategy 1: Try address as-provided first
+            queries.push(address);
+
+            // Strategy 2: If no Colorado/CO in address, add it
+            if (!hasColorado) {
+                queries.push(address + ', Colorado');
+            }
+
+            // Strategy 3: Try without zip code but keep city and state
+            const withoutZip = address.replace(/\b\d{5}(-\d{4})?\b/g, '').trim().replace(/,\s*$/, '');
+            if (withoutZip !== address) {
+                queries.push(withoutZip);
+            }
+
+            // Strategy 4: Try just street address with Colorado
+            const streetOnly = extractStreetAddress(address);
+            if (streetOnly !== address && streetOnly !== withoutZip) {
+                queries.push(streetOnly + ', Colorado');
+            }
 
             for (const query of queries) {
                 try {
