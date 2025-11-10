@@ -286,15 +286,31 @@
                     }
                 }
 
-                // Look for Westminster specifically
+                // Look for Westminster specifically and debug properties
+                console.log('Sample properties from first 3 features:');
+                for (let i = 0; i < Math.min(3, geojson.features.length); i++) {
+                    console.log(`Feature ${i} properties:`, geojson.features[i].properties);
+                }
+
                 const westminster = geojson.features.find(f =>
                     extractLocationName(f.properties).toLowerCase().includes('westminster')
                 );
                 if (westminster) {
                     console.log('Found Westminster in features!');
+                    console.log('Westminster properties:', westminster.properties);
                     console.log('Westminster geometry type:', westminster.geometry.type);
                 } else {
                     console.log('Westminster NOT found in this dataset');
+                    // Try searching all property values
+                    const anyWestminster = geojson.features.find(f => {
+                        const props = f.properties;
+                        return Object.values(props).some(v =>
+                            typeof v === 'string' && v.toLowerCase().includes('westminster')
+                        );
+                    });
+                    if (anyWestminster) {
+                        console.log('Found Westminster in properties:', anyWestminster.properties);
+                    }
                 }
             }
 
