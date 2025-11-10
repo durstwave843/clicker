@@ -319,8 +319,10 @@
         }
 
         // Ray casting algorithm for point-in-polygon check
+        // Handles both 2D [lon, lat] and 3D [lon, lat, altitude] coordinates
         function pointInPolygon(point, polygonCoords) {
-            const [x, y] = point;
+            const x = point[0];
+            const y = point[1];
             const rings = polygonCoords;
 
             // Check the outer ring (first ring)
@@ -328,8 +330,11 @@
             let inside = false;
 
             for (let i = 0, j = outerRing.length - 1; i < outerRing.length; j = i++) {
-                const [xi, yi] = outerRing[i];
-                const [xj, yj] = outerRing[j];
+                // Explicitly use only first 2 coordinates (ignore altitude if present)
+                const xi = outerRing[i][0];
+                const yi = outerRing[i][1];
+                const xj = outerRing[j][0];
+                const yj = outerRing[j][1];
 
                 const intersect = ((yi > y) !== (yj > y)) &&
                     (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
@@ -343,8 +348,11 @@
                     let inHole = false;
 
                     for (let i = 0, j = hole.length - 1; i < hole.length; j = i++) {
-                        const [xi, yi] = hole[i];
-                        const [xj, yj] = hole[j];
+                        // Explicitly use only first 2 coordinates (ignore altitude if present)
+                        const xi = hole[i][0];
+                        const yi = hole[i][1];
+                        const xj = hole[j][0];
+                        const yj = hole[j][1];
 
                         const intersect = ((yi > y) !== (yj > y)) &&
                             (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
