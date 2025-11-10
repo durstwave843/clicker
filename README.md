@@ -36,7 +36,11 @@ You can use any local web server of your choice. Just make sure the `index.html`
 
 1. Start the local web server (see above)
 2. Open your browser to http://localhost:8000
-3. Enter a Colorado address in the input field (e.g., "1600 Broadway, Denver, CO")
+3. Fill in the address fields:
+   - House Number (e.g., 11367)
+   - Street Name (e.g., Depew)
+   - Street Type (select from dropdown: Way, Street, Avenue, etc.)
+   - Zip Code (optional, e.g., 80020)
 4. Click "Search" or press Enter
 5. The app will display which town or county the address falls within
 

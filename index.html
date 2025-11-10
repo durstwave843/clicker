@@ -31,13 +31,17 @@
             font-weight: bold;
             color: #555;
         }
-        input[type="text"] {
+        input[type="text"], select {
             width: 100%;
             padding: 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 16px;
             box-sizing: border-box;
+        }
+        select {
+            background-color: white;
+            cursor: pointer;
         }
         button {
             width: 100%;
@@ -102,10 +106,37 @@
     <div class="container">
         <h1>Colorado Address Lookup</h1>
         <div class="input-group">
-            <label for="address">Enter a Colorado Address:</label>
-            <input type="text" id="address" placeholder="e.g., 1600 Broadway, Denver, CO">
-            <button id="searchBtn" onclick="searchAddress()">Search</button>
+            <label>House Number:</label>
+            <input type="text" id="houseNumber" placeholder="e.g., 11367">
         </div>
+        <div class="input-group">
+            <label>Street Name:</label>
+            <input type="text" id="streetName" placeholder="e.g., Depew">
+        </div>
+        <div class="input-group">
+            <label>Street Type:</label>
+            <select id="streetType">
+                <option value="">Select Type</option>
+                <option value="Ave">Avenue</option>
+                <option value="Blvd">Boulevard</option>
+                <option value="Cir">Circle</option>
+                <option value="Ct">Court</option>
+                <option value="Dr">Drive</option>
+                <option value="Ln">Lane</option>
+                <option value="Pkwy">Parkway</option>
+                <option value="Pl">Place</option>
+                <option value="Rd">Road</option>
+                <option value="St">Street</option>
+                <option value="Ter">Terrace</option>
+                <option value="Trl">Trail</option>
+                <option value="Way">Way</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Zip Code (Optional):</label>
+            <input type="text" id="zipCode" placeholder="e.g., 80020" maxlength="5">
+        </div>
+        <button id="searchBtn" onclick="searchAddress()">Search</button>
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p>Searching...</p>
@@ -220,12 +251,20 @@
         }
 
         async function searchAddress() {
-            const address = document.getElementById('address').value.trim();
+            const houseNumber = document.getElementById('houseNumber').value.trim();
+            const streetName = document.getElementById('streetName').value.trim();
+            const streetType = document.getElementById('streetType').value;
+            const zipCode = document.getElementById('zipCode').value.trim();
 
-            if (!address) {
-                showResult('Please enter an address.', 'error');
+            // Validate required fields
+            if (!houseNumber || !streetName || !streetType) {
+                showResult('Please fill in House Number, Street Name, and Street Type.', 'error');
                 return;
             }
+
+            // Construct the address
+            const address = `${houseNumber} ${streetName} ${streetType}`;
+            const fullAddress = zipCode ? `${address}, CO ${zipCode}` : `${address}, Colorado`;
 
             // Show loading
             document.getElementById('loading').style.display = 'block';
@@ -234,7 +273,7 @@
 
             try {
                 // Try geocoding with fallback strategies
-                const geocodeResult = await geocodeWithFallback(address);
+                const geocodeResult = await geocodeWithFallback(fullAddress);
 
                 if (!geocodeResult) {
                     showResult('Address not found. Please try a different address or format.', 'error');
@@ -384,11 +423,13 @@
             resultDiv.style.display = 'block';
         }
 
-        // Allow Enter key to trigger search
-        document.getElementById('address').addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                searchAddress();
-            }
+        // Allow Enter key to trigger search from any input field
+        ['houseNumber', 'streetName', 'zipCode'].forEach(id => {
+            document.getElementById(id).addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    searchAddress();
+                }
+            });
         });
     </script>
 </body>
