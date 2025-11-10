@@ -272,6 +272,21 @@
 
             console.log(`Checking point [${lon}, ${lat}] against ${geojson.features.length} features`);
 
+            // Debug: Check first feature structure
+            if (geojson.features.length > 0) {
+                const firstFeature = geojson.features[0];
+                console.log('First feature geometry type:', firstFeature.geometry.type);
+                console.log('First feature name:', extractLocationName(firstFeature.properties));
+                if (firstFeature.geometry.coordinates && firstFeature.geometry.coordinates[0]) {
+                    const firstRing = firstFeature.geometry.type === 'MultiPolygon'
+                        ? firstFeature.geometry.coordinates[0][0]
+                        : firstFeature.geometry.coordinates[0];
+                    if (firstRing && firstRing[0]) {
+                        console.log('First coordinate sample:', firstRing[0]);
+                    }
+                }
+            }
+
             for (const feature of geojson.features) {
                 if (feature.geometry.type === 'Polygon') {
                     if (pointInPolygon([lon, lat], feature.geometry.coordinates)) {
