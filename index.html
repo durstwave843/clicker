@@ -136,8 +136,6 @@
                 countiesData = toGeoJSON.kml(countiesKML);
 
                 console.log('KML files loaded successfully');
-                console.log('Towns features:', townsData.features ? townsData.features.length : 0);
-                console.log('Counties features:', countiesData.features ? countiesData.features.length : 0);
             } catch (error) {
                 console.error('Error loading KML files:', error);
                 showResult('Error loading map data. Please refresh the page.', 'error');
@@ -188,7 +186,6 @@
                     const geocodeData = await geocodeResponse.json();
 
                     if (geocodeData && geocodeData.length > 0) {
-                        console.log(`Geocoded successfully using query: "${query}"`);
                         return {
                             lat: parseFloat(geocodeData[0].lat),
                             lon: parseFloat(geocodeData[0].lon)
@@ -247,7 +244,6 @@
                 const lat = geocodeResult.lat;
                 const lon = geocodeResult.lon;
 
-                console.log(`Geocoded to: ${lat}, ${lon}`);
 
                 // Check if point is in Towns
                 let locationName = checkPointInPolygons(lon, lat, townsData);
@@ -287,63 +283,16 @@
                 return null;
             }
 
-            console.log(`Checking point [${lon}, ${lat}] against ${geojson.features.length} features`);
-
-            // Debug: Check first feature structure
-            if (geojson.features.length > 0) {
-                const firstFeature = geojson.features[0];
-                console.log('First feature geometry type:', firstFeature.geometry.type);
-                console.log('First feature name:', extractLocationName(firstFeature.properties));
-                if (firstFeature.geometry.coordinates && firstFeature.geometry.coordinates[0]) {
-                    const firstRing = firstFeature.geometry.type === 'MultiPolygon'
-                        ? firstFeature.geometry.coordinates[0][0]
-                        : firstFeature.geometry.coordinates[0];
-                    if (firstRing && firstRing[0]) {
-                        console.log('First coordinate sample:', firstRing[0]);
-                    }
-                }
-
-                // Look for Westminster specifically and debug properties
-                console.log('Sample properties from first 3 features:');
-                for (let i = 0; i < Math.min(3, geojson.features.length); i++) {
-                    console.log(`Feature ${i} properties:`, geojson.features[i].properties);
-                }
-
-                const westminster = geojson.features.find(f =>
-                    extractLocationName(f.properties).toLowerCase().includes('westminster')
-                );
-                if (westminster) {
-                    console.log('Found Westminster in features!');
-                    console.log('Westminster properties:', westminster.properties);
-                    console.log('Westminster geometry type:', westminster.geometry.type);
-                } else {
-                    console.log('Westminster NOT found in this dataset');
-                    // Try searching all property values
-                    const anyWestminster = geojson.features.find(f => {
-                        const props = f.properties;
-                        return Object.values(props).some(v =>
-                            typeof v === 'string' && v.toLowerCase().includes('westminster')
-                        );
-                    });
-                    if (anyWestminster) {
-                        console.log('Found Westminster in properties:', anyWestminster.properties);
-                    }
-                }
-            }
 
             for (const feature of geojson.features) {
                 if (feature.geometry.type === 'Polygon') {
                     if (pointInPolygon([lon, lat], feature.geometry.coordinates)) {
-                        const name = extractLocationName(feature.properties);
-                        console.log(`Found match in Polygon: ${name}`);
-                        return name;
+                        return extractLocationName(feature.properties);
                     }
                 } else if (feature.geometry.type === 'MultiPolygon') {
                     for (const polygon of feature.geometry.coordinates) {
                         if (pointInPolygon([lon, lat], polygon)) {
-                            const name = extractLocationName(feature.properties);
-                            console.log(`Found match in MultiPolygon: ${name}`);
-                            return name;
+                            return extractLocationName(feature.properties);
                         }
                     }
                 } else if (feature.geometry.type === 'GeometryCollection') {
@@ -351,23 +300,18 @@
                     for (const geometry of feature.geometry.geometries) {
                         if (geometry.type === 'Polygon') {
                             if (pointInPolygon([lon, lat], geometry.coordinates)) {
-                                const name = extractLocationName(feature.properties);
-                                console.log(`Found match in GeometryCollection/Polygon: ${name}`);
-                                return name;
+                                return extractLocationName(feature.properties);
                             }
                         } else if (geometry.type === 'MultiPolygon') {
                             for (const polygon of geometry.coordinates) {
                                 if (pointInPolygon([lon, lat], polygon)) {
-                                    const name = extractLocationName(feature.properties);
-                                    console.log(`Found match in GeometryCollection/MultiPolygon: ${name}`);
-                                    return name;
+                                    return extractLocationName(feature.properties);
                                 }
                             }
                         }
                     }
                 }
             }
-            console.log('No match found in any polygons');
             return null;
         }
 
@@ -388,14 +332,6 @@
             const y = point[1];
             const rings = polygonCoords;
 
-            // Debug first call only
-            if (!window.debuggedPolygon) {
-                console.log('Point:', x, y);
-                console.log('Rings structure:', rings.length, 'rings');
-                console.log('Outer ring points:', rings[0].length);
-                console.log('First point in ring:', rings[0][0]);
-                window.debuggedPolygon = true;
-            }
 
             // Check the outer ring (first ring)
             const outerRing = rings[0];
