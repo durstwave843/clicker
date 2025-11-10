@@ -145,6 +145,64 @@
         // Call on page load
         loadKMLFiles();
 
+        async function geocodeWithFallback(address) {
+            // Try multiple query variations to improve geocoding success
+            const queries = [
+                address + ', Colorado',  // Original with Colorado
+                address,                  // As provided
+                extractStreetAddress(address) + ', Colorado'  // Just street part
+            ];
+
+            for (const query of queries) {
+                try {
+                    const geocodeUrl = `https://nominatim.openstreetmap.org/search?` +
+                        `q=${encodeURIComponent(query)}&` +
+                        `format=json&` +
+                        `limit=1&` +
+                        `countrycodes=us`;
+
+                    const geocodeResponse = await fetch(geocodeUrl, {
+                        headers: {
+                            'User-Agent': 'ColoradoAddressLookup/1.0'
+                        }
+                    });
+                    const geocodeData = await geocodeResponse.json();
+
+                    if (geocodeData && geocodeData.length > 0) {
+                        console.log(`Geocoded successfully using query: "${query}"`);
+                        return {
+                            lat: parseFloat(geocodeData[0].lat),
+                            lon: parseFloat(geocodeData[0].lon)
+                        };
+                    }
+
+                    // Small delay between requests to be respectful to the API
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                } catch (error) {
+                    console.error(`Failed to geocode with query "${query}":`, error);
+                }
+            }
+
+            return null;
+        }
+
+        function extractStreetAddress(address) {
+            // Remove common suffixes like city, state, zip
+            // Keep just the street number and name
+            let cleaned = address.trim();
+
+            // Remove zip codes (5 or 9 digit patterns)
+            cleaned = cleaned.replace(/\b\d{5}(-\d{4})?\b/g, '');
+
+            // Remove state abbreviations and "Colorado"
+            cleaned = cleaned.replace(/,?\s*(CO|Colorado)\s*,?/gi, '');
+
+            // Remove common city names if at the end (after a comma)
+            cleaned = cleaned.replace(/,\s*[A-Za-z\s]+$/g, '');
+
+            return cleaned.trim().replace(/,+\s*$/, '');
+        }
+
         async function searchAddress() {
             const address = document.getElementById('address').value.trim();
 
@@ -159,27 +217,16 @@
             document.getElementById('searchBtn').disabled = true;
 
             try {
-                // Geocode the address (using Nominatim - free OpenStreetMap geocoding service)
-                const geocodeUrl = `https://nominatim.openstreetmap.org/search?` +
-                    `q=${encodeURIComponent(address + ', Colorado')}&` +
-                    `format=json&` +
-                    `limit=1&` +
-                    `countrycodes=us`;
+                // Try geocoding with fallback strategies
+                const geocodeResult = await geocodeWithFallback(address);
 
-                const geocodeResponse = await fetch(geocodeUrl, {
-                    headers: {
-                        'User-Agent': 'ColoradoAddressLookup/1.0'
-                    }
-                });
-                const geocodeData = await geocodeResponse.json();
-
-                if (!geocodeData || geocodeData.length === 0) {
-                    showResult('Address not found. Please try a different address.', 'error');
+                if (!geocodeResult) {
+                    showResult('Address not found. Please try a different address or format.', 'error');
                     return;
                 }
 
-                const lat = parseFloat(geocodeData[0].lat);
-                const lon = parseFloat(geocodeData[0].lon);
+                const lat = geocodeResult.lat;
+                const lon = geocodeResult.lon;
 
                 console.log(`Geocoded to: ${lat}, ${lon}`);
 
