@@ -329,6 +329,25 @@
                             return name;
                         }
                     }
+                } else if (feature.geometry.type === 'GeometryCollection') {
+                    // Handle GeometryCollection (from KML MultiGeometry)
+                    for (const geometry of feature.geometry.geometries) {
+                        if (geometry.type === 'Polygon') {
+                            if (pointInPolygon([lon, lat], geometry.coordinates)) {
+                                const name = extractLocationName(feature.properties);
+                                console.log(`Found match in GeometryCollection/Polygon: ${name}`);
+                                return name;
+                            }
+                        } else if (geometry.type === 'MultiPolygon') {
+                            for (const polygon of geometry.coordinates) {
+                                if (pointInPolygon([lon, lat], polygon)) {
+                                    const name = extractLocationName(feature.properties);
+                                    console.log(`Found match in GeometryCollection/MultiPolygon: ${name}`);
+                                    return name;
+                                }
+                            }
+                        }
+                    }
                 }
             }
             console.log('No match found in any polygons');
