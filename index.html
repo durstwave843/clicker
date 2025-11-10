@@ -325,6 +325,15 @@
             const y = point[1];
             const rings = polygonCoords;
 
+            // Debug first call only
+            if (!window.debuggedPolygon) {
+                console.log('Point:', x, y);
+                console.log('Rings structure:', rings.length, 'rings');
+                console.log('Outer ring points:', rings[0].length);
+                console.log('First point in ring:', rings[0][0]);
+                window.debuggedPolygon = true;
+            }
+
             // Check the outer ring (first ring)
             const outerRing = rings[0];
             let inside = false;
