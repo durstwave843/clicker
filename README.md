@@ -14,13 +14,39 @@ A simple web application that geocodes Colorado addresses and identifies which t
 
 ### Option 1: As a Managed System Service (Recommended for Production)
 
-Install as a systemd service that runs automatically on boot and restarts on failure:
+Install as a background service that runs automatically on boot and restarts on failure.
+
+#### For macOS (using launchd):
+
+```bash
+sudo bash install-service-macos.sh
+```
+
+The server will be accessible on your LAN. Check the logs:
+
+```bash
+tail -f /tmp/colorado-address-lookup.log
+```
+
+**Service Management Commands:**
+```bash
+sudo launchctl list | grep colorado                                      # Check if running
+sudo launchctl unload /Library/LaunchDaemons/com.coloradoaddresslookup.server.plist   # Stop
+sudo launchctl load /Library/LaunchDaemons/com.coloradoaddresslookup.server.plist     # Start
+```
+
+**To uninstall:**
+```bash
+sudo bash uninstall-service-macos.sh
+```
+
+#### For Linux (using systemd):
 
 ```bash
 sudo bash install-service.sh
 ```
 
-The server will be accessible on your LAN. Check the server logs for the LAN IP address:
+The server will be accessible on your LAN. Check the server logs:
 
 ```bash
 sudo journalctl -u colorado-address-lookup -f
@@ -86,6 +112,13 @@ You can use any local web server of your choice. Just make sure the `index.html`
 - `Towns.kml` - Colorado town boundary data
 - `Counties.kml` - Colorado county boundary data
 - `server.py` - Python HTTP server with LAN access support
-- `colorado-address-lookup.service` - Systemd service file
-- `install-service.sh` - Service installation script
-- `uninstall-service.sh` - Service uninstallation script
+
+**macOS Service Files:**
+- `com.coloradoaddresslookup.server.plist` - macOS launchd service file
+- `install-service-macos.sh` - macOS service installation script
+- `uninstall-service-macos.sh` - macOS service uninstallation script
+
+**Linux Service Files:**
+- `colorado-address-lookup.service` - Linux systemd service file
+- `install-service.sh` - Linux service installation script
+- `uninstall-service.sh` - Linux service uninstallation script

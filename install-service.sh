@@ -6,6 +6,7 @@ set -e
 SERVICE_NAME="colorado-address-lookup"
 SERVICE_FILE="$SERVICE_NAME.service"
 SYSTEMD_DIR="/etc/systemd/system"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=================================="
 echo "Colorado Address Lookup Installer"
@@ -20,8 +21,8 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Copy service file
-echo "Installing service file..."
-cp "$SERVICE_FILE" "$SYSTEMD_DIR/$SERVICE_FILE"
+echo "Installing service file from: $SCRIPT_DIR/$SERVICE_FILE"
+cp "$SCRIPT_DIR/$SERVICE_FILE" "$SYSTEMD_DIR/$SERVICE_FILE"
 
 # Reload systemd
 echo "Reloading systemd daemon..."
